@@ -33,8 +33,7 @@ def lstm(num_hidden, indata, prev_state, param, seqidx, layeridx):
     return LSTMState(c=next_c, h=next_h)
 
 
-def lstm_unroll(num_lstm_layer, seq_len,
-                num_hidden, num_label):
+def lstm_unroll(num_lstm_layer, seq_len, num_hidden, num_label, num_class):
     param_cells = []
     last_states = []
     for i in range(num_lstm_layer):
@@ -64,6 +63,51 @@ def lstm_unroll(num_lstm_layer, seq_len,
             last_states[i] = next_state
         hidden_all.append(hidden)
 
+    hidden_concat = mx.sym.Concat(*hidden_all, dim=0)
+    pred = mx.sym.FullyConnected(data=hidden_concat, num_hidden=num_class)
+
+    label = mx.sym.Reshape(data=label, shape=(-1,))
+    label = mx.sym.Cast(data = label, dtype = 'int32')
+    sm = mx.sym.WarpCTC(data=pred, label=label, label_length = num_label, input_length = seq_len)
+    return sm
+
+# unlike lstm_unroll, remove layered lstm structure
+def blstm_unroll(seq_len, num_hidden, num_label, num_class):
+    params = LSTMParam(i2h_weight=mx.sym.Variable("i2h_weight"),
+                       i2h_bias=mx.sym.Variable("i2h_bias"),
+                       h2h_weight=mx.sym.Variable("h2h_weight"),
+                       h2h_bias=mx.sym.Variable("h2h_bias"))
+    forward_states = LSTMState(c=mx.sym.Variable("f_init_c"),
+                               h=mx.sym.Variable("f_init_h"))
+    backward_states = LSTMState(c=mx.sym.Variable("b_init_c"),
+                                h=mx.sym.Variable("b_init_h"))
+
+    data = mx.sym.Variable('data')
+    label = mx.sym.Variable('label')
+    wordvec = mx.sym.SliceChannel(data=data, num_outputs=seq_len, squeeze_axis=1)
+
+    # forward, layeridx 0
+    forward_hidden_all = []
+    for seqidx in range(seq_len):
+        next_states = lstm(num_hidden, indata=wordvec[seqidx],
+                           prev_state=forward_states,
+                           param=params,
+                           seqidx=seqidx, layeridx=0)
+        forward_hidden_all.append(next_states.h)
+        forward_states = next_states
+
+    # backward, layeridx 1
+    backward_hidden_all = []
+    for seqidx in reversed(range(seq_len)):
+        next_states = lstm(num_hidden, indata=wordvec[seqidx],
+                           prev_state=backward_states,
+                           param=params,
+                           seqidx=seqidx, layeridx=1)
+        backward_hidden_all.append(next_states.h)
+        backward_states = next_states
+    backward_hidden_all.reverse()
+
+    hidden_all = [mx.sym.Concat(*p) for p in zip(forward_hidden_all, backward_hidden_all)]
     hidden_concat = mx.sym.Concat(*hidden_all, dim=0)
     pred = mx.sym.FullyConnected(data=hidden_concat, num_hidden=11)
 

@@ -84,11 +84,10 @@ class Prefetch:
         self._join()
 
 class OCRIter(mx.io.DataIter):
-    def __init__(self, count, batch_size, num_label, init_states, threads):
+    def __init__(self, count, batch_size, init_states, threads):
         super(OCRIter, self).__init__()
         self.captcha = ImageCaptcha(fonts=['./platechar.ttf'])
         self.batch_size = batch_size
-        self.num_label = num_label
         self.init_states = init_states
         self.init_state_names = [x[0] for x in self.init_states]
         self.init_state_arrays = [np.zeros(x[1]) for x in init_states]
@@ -123,6 +122,9 @@ class OCRIter(mx.io.DataIter):
 
     def reset(self):
         self.prefetch._reset()
+
+    def join(self):
+        self.prefetch._join()
 
     def __iter__(self):
         for batch in self.prefetch:
@@ -182,7 +184,6 @@ class CTC:
         return pred
 
 def Accuracy(label, pred):
-    global SEQ_LENGTH
     batch_size_per_gpu = pred.shape[0] / SEQ_LENGTH
     hit = 0.
     total = 0.
@@ -215,30 +216,36 @@ if __name__ == '__main__':
 
     prefetch_thread = 16
 
-    contexts = [mx.context.gpu(i) for i in range(4)]
+    train_from_scratch = True
+    prefix = 'ocr'
+    epoch = 15
 
-    def sym_gen(seq_len):
-        return lstm_unroll(num_lstm_layer, seq_len,
-                           num_hidden=num_hidden,
-                           num_label = num_label)
+    contexts = [mx.context.gpu(i) for i in range(4)]
 
     init_c = [('l%d_init_c' % l, (batch_size, num_hidden)) for l in range(num_lstm_layer)]
     init_h = [('l%d_init_h' % l, (batch_size, num_hidden)) for l in range(num_lstm_layer)]
     init_states = init_c + init_h
 
-    data_train = OCRIter(10000, batch_size, num_label, init_states, prefetch_thread)
-    data_val = OCRIter(1000, batch_size, num_label, init_states, prefetch_thread)
+    data_train = OCRIter(10000, batch_size, init_states, prefetch_thread)
+    data_val = OCRIter(1000, batch_size, init_states, prefetch_thread)
 
-    symbol = sym_gen(SEQ_LENGTH)
-
-    model = mx.model.FeedForward(ctx=contexts,
-                                 symbol=symbol,
-                                 num_epoch=num_epoch,
-                                 learning_rate=learning_rate,
-                                 momentum=momentum,
-                                 wd=0.00001,
-                                 initializer=mx.init.Xavier(factor_type="in", magnitude=2.34))
-
+    if train_from_scratch:
+        symbol = lstm_unroll(num_lstm_layer, SEQ_LENGTH, num_hidden, num_label, 11)
+        model = mx.model.FeedForward(ctx=contexts,
+                                     symbol=symbol,
+                                     num_epoch=num_epoch,
+                                     learning_rate=learning_rate,
+                                     momentum=momentum,
+                                     wd=0.00001,
+                                     initializer=mx.init.Xavier(factor_type="in", magnitude=2.34))
+    else:
+        model = mx.model.FeedForward.load(prefix=prefix,
+                                          epoch=epoch,
+                                          ctx=contexts,
+                                          num_epoch=num_epoch,
+                                          learning_rate=learning_rate,
+                                          momentum=momentum,
+                                          wd=0.00001)
     import logging
     head = '%(asctime)-15s %(message)s'
     logging.basicConfig(level=logging.DEBUG, format=head)
@@ -246,4 +253,7 @@ if __name__ == '__main__':
     model.fit(X=data_train, eval_data=data_val,
               eval_metric = mx.metric.np(Accuracy),
               batch_end_callback=mx.callback.Speedometer(batch_size, 50),
-              epoch_end_callback=mx.callback.do_checkpoint('ocr'))
+              epoch_end_callback=mx.callback.do_checkpoint(prefix))
+
+    data_train.join()
+    data_val.join()

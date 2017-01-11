@@ -39,7 +39,7 @@ if __name__ == '__main__':
     inputs = [('data', (batch_size, img_dim)), ('label', (batch_size, num_label))]
     input_shapes = dict(init_states + inputs)
 
-    data = OCRIter(batch_num, batch_size, num_label, init_states, 1)
+    data = OCRIter(batch_num, batch_size, init_states, 1)
 
     predictor = Predictor('ocr', 15, seq_len, input_shapes)
 
