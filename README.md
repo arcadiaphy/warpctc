@@ -1,5 +1,7 @@
 # Warp CTC Example
-Built from [mxnet warp ctc example](https://github.com/dmlc/mxnet/tree/master/example/warpctc). Car plate generation code imported from [end-to-end-for-chinese-plate-recognition](https://github.com/szad670401/end-to-end-for-chinese-plate-recognition).
+Built from [mxnet warp ctc example](https://github.com/dmlc/mxnet/tree/master/example/warpctc)
+
+Car plate generation code imported from [end-to-end-for-chinese-plate-recognition](https://github.com/szad670401/end-to-end-for-chinese-plate-recognition)
 
 ## Added utilities:
 - OCRIter prefetch to boost training speed

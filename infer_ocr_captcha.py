@@ -31,7 +31,7 @@ if __name__ == '__main__':
     num_lstm_layer = 2
     num_label = 4
     seq_len = 80
-    img_dim = 80 * 30
+    img_dim = seq_len * 30
 
     init_c = [('l%d_init_c' % l, (batch_size, num_hidden)) for l in range(num_lstm_layer)]
     init_h = [('l%d_init_h' % l, (batch_size, num_hidden)) for l in range(num_lstm_layer)]
@@ -48,7 +48,7 @@ if __name__ == '__main__':
         print 'label: ' + CTC.label_decode(batch.label[0].asnumpy()[0])
         print 'predicted: ' + CTC.ctc_decode(prob, seq_len)
 
-        img = batch.data[0].asnumpy().reshape((80, 30)).transpose((1, 0))
+        img = batch.data[0].asnumpy().reshape((seq_len, 30)).transpose((1, 0))
         img = (img * 255).astype(np.uint8)
         img = Image.fromarray(img)
         img.show()

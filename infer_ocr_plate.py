@@ -1,5 +1,6 @@
 import numpy as np
 import mxnet as mx
+from PIL import Image
 
 from ocr_plate import CTC, OCRIter
 
@@ -24,7 +25,7 @@ class Predictor:
 
 
 if __name__ == '__main__':
-    batch_num = 5
+    batch_num = 1
     batch_size = 1
     num_hidden = 128
     num_label = 7
@@ -45,4 +46,8 @@ if __name__ == '__main__':
         prob = predictor.forward(batch.data[0])
         print 'label:\t\t' + CTC.label_decode(batch.label[0].asnumpy()[0])
         print 'predicted:\t' + CTC.ctc_decode(prob, seq_len)
-        print
+
+        img = batch.data[0].asnumpy().reshape((seq_len, 30)).transpose((1, 0))
+        img = (img * 255).astype(np.uint8)
+        img = Image.fromarray(img)
+        img.show()
