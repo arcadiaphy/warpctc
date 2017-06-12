@@ -4,11 +4,16 @@ from PIL import Image
 
 from ocr_captcha import CTC, OCRIter
 
+def convert_deploy(sym):
+    fc = sym.get_internals()['fullyconnected0_output']
+    sm = mx.sym.SoftmaxOutput(data=fc, name='softmax')
+    return sm
+
 class Predictor:
     def __init__(self, prefix, epoch, seq_len, input_shapes):
         self.seq_len = seq_len
         sym, arg_params, aux_params = mx.model.load_checkpoint(prefix, epoch)
-        self.sym = sym
+        self.sym = convert_deploy(sym)
         self.exc = self.sym.simple_bind(ctx=mx.cpu(0), grad_req='null', **input_shapes)
 
         for k in arg_params.keys():
@@ -36,7 +41,7 @@ if __name__ == '__main__':
     init_c = [('l%d_init_c' % l, (batch_size, num_hidden)) for l in range(num_lstm_layer)]
     init_h = [('l%d_init_h' % l, (batch_size, num_hidden)) for l in range(num_lstm_layer)]
     init_states = init_c + init_h
-    inputs = [('data', (batch_size, img_dim)), ('label', (batch_size, num_label))]
+    inputs = [('data', (batch_size, img_dim))]
     input_shapes = dict(init_states + inputs)
 
     data = OCRIter(batch_num, batch_size, init_states, 1)
