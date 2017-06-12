@@ -5,7 +5,6 @@ Car plate generation code imported from [end-to-end-for-chinese-plate-recognitio
 
 ## Added utilities:
 - OCRIter prefetch to boost training speed
-- Pre-trained model, accuracy: 97.6%
 - OCR model prediction
 - Blstm implementation
 
@@ -14,7 +13,7 @@ Car plate generation code imported from [end-to-end-for-chinese-plate-recognitio
 - Chinese car plate model, accuracy 98.2% (computed by edit distance)
 
 ## Demo:
-Mxnet==0.8.0 with baidu warpctc plugin should be installed first:
+Mxnet==0.9.5 with baidu warpctc plugin should be installed first:
 ```
 python infer_ocr_captcha.py
 python infer_ocr_plate.py

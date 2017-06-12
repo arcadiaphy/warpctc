@@ -49,7 +49,7 @@ def lstm_unroll(num_lstm_layer, seq_len, num_hidden, num_label, num_class):
     # embeding layer
     data = mx.sym.Variable('data')
     label = mx.sym.Variable('label')
-    wordvec = mx.sym.SliceChannel(data=data, num_outputs=seq_len, squeeze_axis=1)
+    wordvec = mx.sym.SliceChannel(data=data, num_outputs=seq_len)
 
     hidden_all = []
     for seqidx in range(seq_len):
@@ -84,7 +84,7 @@ def blstm_unroll(seq_len, num_hidden, num_label, num_class):
 
     data = mx.sym.Variable('data')
     label = mx.sym.Variable('label')
-    wordvec = mx.sym.SliceChannel(data=data, num_outputs=seq_len, squeeze_axis=1)
+    wordvec = mx.sym.SliceChannel(data=data, num_outputs=seq_len)
 
     # forward, layeridx 0
     forward_hidden_all = []
@@ -109,7 +109,7 @@ def blstm_unroll(seq_len, num_hidden, num_label, num_class):
 
     hidden_all = [mx.sym.Concat(*p) for p in zip(forward_hidden_all, backward_hidden_all)]
     hidden_concat = mx.sym.Concat(*hidden_all, dim=0)
-    pred = mx.sym.FullyConnected(data=hidden_concat, num_hidden=11)
+    pred = mx.sym.FullyConnected(data=hidden_concat, num_hidden=num_class)
 
     label = mx.sym.Reshape(data=label, shape=(-1,))
     label = mx.sym.Cast(data = label, dtype = 'int32')

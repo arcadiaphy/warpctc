@@ -8,7 +8,6 @@ from captcha.image import ImageCaptcha
 
 from lstm import lstm_unroll
 
-
 class SimpleBatch(object):
     def __init__(self, data_names, data, label_names, label):
         self.data = data

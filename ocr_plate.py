@@ -9,7 +9,6 @@ from plate.genplate import GenPlate, index, chars
 
 from lstm import blstm_unroll
 
-
 class SimpleBatch(object):
     def __init__(self, data_names, data, label_names, label):
         self.data = data
